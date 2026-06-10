@@ -1,0 +1,9 @@
+C:\Users\nouts\source\repos\FURRYPROGRAM\FURRYPROGRAM\bin\x64\Debug\FURRYPROGRAM.exe.config
+C:\Users\nouts\source\repos\FURRYPROGRAM\FURRYPROGRAM\bin\x64\Debug\FURRYPROGRAM.exe
+C:\Users\nouts\source\repos\FURRYPROGRAM\FURRYPROGRAM\bin\x64\Debug\FURRYPROGRAM.pdb
+C:\Users\nouts\source\repos\FURRYPROGRAM\FURRYPROGRAM\obj\x64\Debug\FURRYPROGRAM.csproj.AssemblyReference.cache
+C:\Users\nouts\source\repos\FURRYPROGRAM\FURRYPROGRAM\obj\x64\Debug\Interop.IWshRuntimeLibrary.dll
+C:\Users\nouts\source\repos\FURRYPROGRAM\FURRYPROGRAM\obj\x64\Debug\FURRYPROGRAM.csproj.ResolveComReference.cache
+C:\Users\nouts\source\repos\FURRYPROGRAM\FURRYPROGRAM\obj\x64\Debug\FURRYPROGRAM.csproj.CoreCompileInputs.cache
+C:\Users\nouts\source\repos\FURRYPROGRAM\FURRYPROGRAM\obj\x64\Debug\FURRYPROGRAM.exe
+C:\Users\nouts\source\repos\FURRYPROGRAM\FURRYPROGRAM\obj\x64\Debug\FURRYPROGRAM.pdb
