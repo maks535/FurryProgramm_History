@@ -1,0 +1,165 @@
+using System;
+using System.IO;
+using System.Diagnostics;
+using System.Linq;
+
+class Program
+{
+    const string presetsFile = "presets.txt";
+
+    static void Main()
+    {
+        string folderPath = GetOrCreateFolderPath();
+        if (!Directory.Exists(folderPath))
+        {
+            Console.WriteLine("Папка не найдена.");
+            return;
+        }
+
+        string[] files = Directory.GetFiles(folderPath);
+
+        while (true)
+        {
+            Console.WriteLine("Введите команду (-p имя пресета для загрузки, -s для сохранения пресета, или файлы через ':'): ");
+            string input = Console.ReadLine()?.Trim();
+
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                Console.WriteLine("Доступные файлы:");
+                for (int i = 0; i < files.Length; i++)
+                    Console.WriteLine($"[{i + 1}] {Path.GetFileName(files[i])}");
+
+                continue;
+            }
+
+            if (input.StartsWith("-p "))
+            {
+                string presetName = input.Substring(3).Trim();
+                LoadPreset(presetName, files);
+            }
+            else if (input.StartsWith("-s "))
+            {
+                string[] parts = input.Substring(3).Split(' ');
+                if (parts.Length < 2)
+                {
+                    Console.WriteLine("Неправильный формат команды сохранения.");
+                    continue;
+                }
+
+                string presetName = parts[0];
+                string presetData = string.Join(":", parts.Skip(1));
+
+                SavePreset(presetName, presetData);
+            }
+            else if (input.StartsWith("-c "))
+            {
+                string command = input.Substring(3).Trim();
+                ExecuteCommand(command);
+            }
+            else
+            {
+                LaunchFiles(input.Split(':'), files);
+            }
+        }
+    }
+
+    static void ExecuteCommand(string command)
+    {
+        try
+        {
+            ProcessStartInfo psi = new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = $"/C {command}",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using (Process process = new Process { StartInfo = psi })
+            {
+                process.Start();
+                string output = process.StandardOutput.ReadToEnd();
+                string error = process.StandardError.ReadToEnd();
+                process.WaitForExit();
+
+                Console.WriteLine($"Результат выполнения:\n{output}");
+                if (!string.IsNullOrWhiteSpace(error))
+                    Console.WriteLine($"Ошибка:\n{error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка при выполнении команды: {ex.Message}");
+        }
+    }
+
+    static string GetOrCreateFolderPath()
+    {
+        const string configFile = "config.txt";
+        if (File.Exists(configFile)) return File.ReadAllText(configFile).Trim();
+        Console.Write("Введите путь к папке: ");
+        string folderPath = Console.ReadLine();
+        File.WriteAllText(configFile, folderPath);
+        return folderPath;
+    }
+
+    static void LaunchFiles(string[] requestedFiles, string[] files)
+    {
+        foreach (string fileName in requestedFiles)
+        {
+            string[] matches = files.Where(f => Path.GetFileName(f).ToLower().Contains(fileName.ToLower().Trim())).ToArray();
+
+            if (matches.Length == 1)
+                LaunchFile(matches[0]);
+            else if (matches.Length > 1)
+            {
+                Console.WriteLine($"Найдено несколько файлов для \"{fileName}\":");
+                for (int i = 0; i < matches.Length; i++)
+                    Console.WriteLine($"[{i + 1}] {Path.GetFileName(matches[i])}");
+
+                Console.Write("Выберите номер файла: ");
+                if (int.TryParse(Console.ReadLine(), out int choice) && choice > 0 && choice <= matches.Length)
+                    LaunchFile(matches[choice - 1]);
+            }
+            else
+                Console.WriteLine($"Файл \"{fileName}\" не найден.");
+        }
+    }
+
+    static void SavePreset(string presetName, string presetData)
+    {
+        File.AppendAllText(presetsFile, $"{presetName}:{presetData}\n");
+        Console.WriteLine($"Пресет \"{presetName}\" сохранен.");
+    }
+
+    static void LoadPreset(string presetName, string[] files)
+    {
+        if (!File.Exists(presetsFile))
+        {
+            Console.WriteLine("Файл с пресетами не найден.");
+            return;
+        }
+
+        var lines = File.ReadAllLines(presetsFile);
+        var presetLine = lines.FirstOrDefault(line => line.StartsWith($"{presetName}:"));
+
+        if (presetLine != null)
+        {
+            string[] presetFiles = presetLine.Substring(presetName.Length + 1).Split(':');
+            LaunchFiles(presetFiles, files);
+        }
+        else
+        {
+            Console.WriteLine($"Пресет \"{presetName}\" не найден.");
+        }
+    }
+
+    static void LaunchFile(string filePath)
+    {
+        Console.WriteLine($"Запуск {Path.GetFileName(filePath)}...");
+        try { Process.Start(filePath); }
+        catch (Exception ex) { Console.WriteLine($"Ошибка: {ex.Message}"); }
+    }
+}

@@ -1,0 +1,150 @@
+using System;
+using System.IO;
+using System.Text.RegularExpressions;
+using System.Diagnostics;
+using System.Collections.Generic;
+
+class Program
+{
+    static void Main()
+    {
+        string folderPath = @"D:\diskD\Programs";
+
+        if (!Directory.Exists(folderPath))
+        {
+            Console.WriteLine("Папка не найдена.");
+            return;
+        }
+
+        var files = Directory.GetFiles(folderPath);
+
+        while (true)
+        {
+            Console.Write("Введите название файла, или -c <команда> для выполнения в командной строке (или оставьте пустым для списка всех файлов): ");
+            string input = Console.ReadLine();
+
+            // Проверка на команду с префиксом -c
+            if (input.StartsWith("-c "))
+            {
+                string command = input.Substring(3); // Удаляем "-c " для извлечения команды
+                Console.WriteLine($"Выполнение команды: {command}");
+
+                try
+                {
+                    Process cmdProcess = new Process();
+                    cmdProcess.StartInfo.FileName = "cmd.exe";
+                    cmdProcess.StartInfo.Arguments = $"/C {command}";
+                    cmdProcess.StartInfo.UseShellExecute = true;
+                    cmdProcess.Start();
+                    cmdProcess.WaitForExit();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Ошибка при выполнении команды: {ex.Message}");
+                }
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                Console.WriteLine("Доступные для запуска приложения:");
+                for (int i = 0; i < files.Length; i++)
+                {
+                    Console.WriteLine($"[{i + 1}] - {Path.GetFileName(files[i])}");
+                }
+
+                Console.Write("Выберите номер файла для запуска: ");
+                if (int.TryParse(Console.ReadLine(), out int choice) && choice > 0 && choice <= files.Length)
+                {
+                    string selectedFile = files[choice - 1];
+                    Console.WriteLine($"Запуск {Path.GetFileName(selectedFile)}...");
+                    try
+                    {
+                        Process.Start(new ProcessStartInfo(selectedFile)
+                        {
+                            UseShellExecute = true
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Ошибка при запуске: {ex.Message}");
+                    }
+                    return;
+                }
+                else
+                {
+                    Console.WriteLine("Неверный выбор. Попробуйте снова.");
+                }
+            }
+            else
+            {
+                Regex regex = new Regex(input, RegexOptions.IgnoreCase);
+                var matches = new List<string>();
+
+                foreach (var file in files)
+                {
+                    string name = Path.GetFileNameWithoutExtension(file);
+
+                    if (regex.IsMatch(name))
+                    {
+                        matches.Add(file);
+                    }
+                }
+
+                if (matches.Count == 1)
+                {
+                    string singleMatch = matches[0];
+                    Console.WriteLine($"Найден единственный файл: {Path.GetFileName(singleMatch)}");
+                    Console.WriteLine("Запуск...");
+                    try
+                    {
+                        Process.Start(new ProcessStartInfo(singleMatch)
+                        {
+                            UseShellExecute = true
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Ошибка при запуске: {ex.Message}");
+                    }
+                    return;
+                }
+                else if (matches.Count > 1)
+                {
+                    Console.WriteLine("Найдены следующие файлы:");
+                    for (int i = 0; i < matches.Count; i++)
+                    {
+                        Console.WriteLine($"[{i + 1}] - {Path.GetFileName(matches[i])}");
+                    }
+
+                    Console.Write("Выберите номер файла для запуска: ");
+                    if (int.TryParse(Console.ReadLine(), out int choice) && choice > 0 && choice <= matches.Count)
+                    {
+                        string selectedFile = matches[choice - 1];
+                        Console.WriteLine($"Запуск {Path.GetFileName(selectedFile)}...");
+                        try
+                        {
+                            Process.Start(new ProcessStartInfo(selectedFile)
+                            {
+                                UseShellExecute = true
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Ошибка при запуске: {ex.Message}");
+                        }
+                        return;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Неверный выбор. Попробуйте снова.");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Файл не найден. Попробуйте снова.");
+                }
+            }
+        }
+    }
+}

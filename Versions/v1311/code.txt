@@ -1,0 +1,382 @@
+using System;
+using System.IO;
+using System.Diagnostics;
+using System.Linq;
+
+class Program
+{
+    const string presetsFile = "presets.txt";
+
+    static void Main()
+    {
+        LoadStyleCMD();
+        Console.WriteLine("Текущая дата: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "\nДля вызова списка комманд введите: '?'");
+        string folderPath = GetOrCreateFolderPath();
+        if (!Directory.Exists(folderPath))
+        {
+            Console.WriteLine("Папка не найдена.");
+            return;
+        }
+
+        string[] files = Directory.GetFiles(folderPath);
+
+        while (true)
+        {
+            //Console.WriteLine("Введите команду -p, -s, :, -c: ");
+            Console.Write("Введите команду: ");
+            string input = Console.ReadLine()?.Trim();
+
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                Console.Clear();
+                Console.WriteLine("Доступные файлы:");
+
+                for (int i = 0; i < files.Length; i++)
+                {
+                    Console.WriteLine($"[{i + 1}] {Path.GetFileNameWithoutExtension(files[i])}");
+                }
+                Console.WriteLine("\n");
+                continue;
+            }
+
+            if (input.StartsWith("?"))
+            {
+                Console.Clear();
+                Console.WriteLine("Доступные команды:\n\n-p [имя пресета] --> Загружает пресет");
+                Console.WriteLine("-s [имя пресета] [названия приложений через ':'] --> Сохраняет пресет");
+                Console.WriteLine("-с [Команда в консоль] --> Напрямую выполняет команду в CMD");
+                Console.WriteLine("\nТак же можно запускать приложения через ':'. Пример: Steam:Discord");
+                Console.WriteLine("Писать полные названия приложений не требуется. Пример: stea:dis");
+                Console.WriteLine("\n-style --> Позволяет выбрать стиль для консоли\n");
+            } else if (input.StartsWith("-p "))
+            {
+                string presetName = input.Substring(3).Trim();
+                LoadPreset(presetName, files);
+            }
+            else if (input.StartsWith("-s "))
+            {
+                string[] parts = input.Substring(3).Split(' ');
+                if (parts.Length < 2)
+                {
+                    Console.WriteLine("Неправильный формат команды сохранения.");
+                    continue;
+                }
+
+                string presetName = parts[0];
+                string presetData = string.Join(":", parts.Skip(1));
+
+                SavePreset(presetName, presetData);
+            }
+            else if (input.StartsWith("-c "))
+            {
+                string command = input.Substring(3).Trim();
+                ExecuteCommand(command);
+            }
+            else if (input.StartsWith("-style"))
+            {
+                Console.Clear();
+                StyleForProgram();
+            }
+            else
+            {
+                LaunchFiles(input.Split(':'), files);
+            }
+        }
+    }
+
+    static void StyleForProgram()
+    {
+        string[] MassivNamesBackgroundColors = {"Red", "Green", "Yellow", "White",
+            "Gray", "Black", "Blue", "Cyan", "DarkBlue",
+            "DarkCyan", "DarkGray", "DarkGreen", "DarkMagenta", "DarkRed", "DarkYellow"};
+
+        string[] MassivNamesForegroundColors = {
+        "Red", "Green", "Yellow", "White",
+        "Gray", "Black", "Blue", "Cyan", "DarkBlue",
+        "DarkCyan", "DarkGray", "DarkGreen", "DarkMagenta", "DarkRed", "DarkYellow"
+};
+        while (true) {
+            
+            Console.WriteLine("*Включён режим редактирования стилей*");
+            Console.WriteLine("Выберите что редактировать: Background/Foreground или Exit");
+
+        
+
+        string stylechoose = Console.ReadLine();
+            switch (stylechoose)
+            {
+                case "Background":
+                case "background":
+                case "B":
+                case "b":
+                    Console.Clear();
+                    Console.WriteLine("Выберите цвет фона:");
+
+                    for (int i = 0; i < MassivNamesBackgroundColors.Length; i++)
+                    {
+                        Console.WriteLine($"{i + 1}: {MassivNamesBackgroundColors[i]}");
+                    }
+
+                    int chooseBColor = Convert.ToInt32(Console.ReadLine());
+                    Console.BackgroundColor = (ConsoleColor)Enum.Parse(typeof(ConsoleColor), MassivNamesBackgroundColors[chooseBColor - 1]);
+                    Console.Clear();
+                    Console.WriteLine("*Стиль успешно применён*");
+
+                    break;
+
+                case "Foreground":
+                case "foreground":
+                case "F":
+                case "f":
+                    Console.Clear();
+                    Console.WriteLine("Выберите цвет текста:");
+                    for (int i = 0; i < MassivNamesForegroundColors.Length; i++)
+                    {
+                        Console.WriteLine($"{i + 1}: {MassivNamesForegroundColors[i]}");
+                    }
+
+                    int chooseFColor = Convert.ToInt32(Console.ReadLine());
+                    Console.ForegroundColor = (ConsoleColor)Enum.Parse(typeof(ConsoleColor), MassivNamesForegroundColors[chooseFColor - 1]);
+                    Console.Clear();
+                    Console.WriteLine("*Стиль успешно применён*");
+                    break;
+                case "Exit":
+                case "exit":
+                case "E":
+                case "e":
+                    SaveStyleCMD();
+                    Console.Clear(); ;
+                    return;
+                default:
+                    Console.Clear();
+                    Console.WriteLine("Действие не распознано. Попробуйте снова.\n");
+                    break;
+            }
+        }
+
+    }
+
+    static void LoadStyleCMD()
+    {
+        string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Style.txt");
+
+        if (!File.Exists(filePath))
+        {
+            return;
+        }
+
+        string[] lines = File.ReadAllLines(filePath);
+        string backgroundColor = null;
+        string foregroundColor = null;
+
+        foreach (string line in lines)
+        {
+            if (line.StartsWith("Background="))
+                backgroundColor = line.Substring("Background=".Length);
+            else if (line.StartsWith("Foreground="))
+                foregroundColor = line.Substring("Foreground=".Length);
+        }
+
+        try
+        {
+            if (backgroundColor != null)
+                Console.BackgroundColor = (ConsoleColor)Enum.Parse(typeof(ConsoleColor), backgroundColor);
+
+            if (foregroundColor != null)
+                Console.ForegroundColor = (ConsoleColor)Enum.Parse(typeof(ConsoleColor), foregroundColor);
+
+            Console.Clear();
+        }
+        catch
+        {
+            Console.WriteLine("Ошибка при применении настроек. Проверьте содержимое файла Style.txt.");
+        }
+    }
+    static void SaveStyleCMD()
+    {
+        Console.Clear();
+        Console.WriteLine("Использовать эти настройки при следующем запуске?");
+        string ChooseStyleSettings = Console.ReadLine();
+
+        while (true)
+        {
+            switch (ChooseStyleSettings)
+            {
+                case "Yes":
+                case "yes":
+                case "Y":
+                case "y":
+                    Console.Clear();
+                    string backgroundColor = Console.BackgroundColor.ToString();
+                    string foregroundColor = Console.ForegroundColor.ToString();
+
+                    string[] lines = {
+                    $"Background={backgroundColor}",
+                    $"Foreground={foregroundColor}"
+                };
+
+                    string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Style.txt");
+
+                    File.WriteAllLines(filePath, lines);
+
+                    Console.WriteLine($"*Настройки сохранены*");
+                    return;
+
+                case "No":
+                case "no":
+                case "N":
+                case "n":
+                    Console.Clear();
+                    return;
+
+                default:
+                    Console.Clear();
+                    Console.WriteLine("Возможные ответы: Yes, yes, Y, y, No, no, N, n");
+                    ChooseStyleSettings = Console.ReadLine();
+                    break;
+            }
+        }
+    }
+    static void ExecuteCommand(string command)
+    {
+        try
+        {
+            ProcessStartInfo psi = new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = $"/C {command}",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using (Process process = new Process { StartInfo = psi })
+            {
+                process.Start();
+                string output = process.StandardOutput.ReadToEnd();
+                string error = process.StandardError.ReadToEnd();
+                process.WaitForExit();
+
+                Console.WriteLine($"Результат выполнения:\n{output}");
+                if (!string.IsNullOrWhiteSpace(error))
+                    Console.WriteLine($"Ошибка:\n{error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка при выполнении команды: {ex.Message}");
+        }
+    }
+
+    static string GetOrCreateFolderPath()
+    {
+        const string configFile = "config.txt";
+        int i = 0;
+        try
+        {
+            if (File.Exists(configFile))
+            {
+                
+                string savedPath = File.ReadAllText(configFile).Trim();
+                if (Directory.Exists(savedPath))
+                    return savedPath;
+                Console.Clear();
+                Console.WriteLine("Сохранённый путь не существует. Введите его корректно");
+            }
+
+            Console.Write("Введите путь к папке: ");
+            string folderPath = Console.ReadLine()?.Trim();
+
+            while (string.IsNullOrEmpty(folderPath) || !Directory.Exists(folderPath))
+            {
+                Console.Clear();
+                i++;
+                
+                Console.WriteLine("Неверный путь. Попробуйте ещё раз");
+                if (i >= 2)
+                {
+                    Console.WriteLine("Если нужна помощь, обратитесь к Фембою");
+                }
+                Console.Write("Введите путь к папке: ");
+                
+                folderPath = Console.ReadLine()?.Trim();
+                
+            }
+            File.WriteAllText(configFile, folderPath);
+            return folderPath;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка: {ex.Message}");
+            return string.Empty;
+        }
+    }
+
+    static void LaunchFiles(string[] requestedFiles, string[] files)
+    {
+        foreach (string fileName in requestedFiles)
+        {
+            
+            string[] matches = files.Where(f => Path.GetFileName(f).ToLower().Contains(fileName.ToLower().Trim())).ToArray();
+
+            if (matches.Length == 1)
+                LaunchFile(matches[0]);
+            else if (matches.Length > 1)
+            {
+                Console.Clear();
+                Console.WriteLine($"Найдено несколько файлов для \"{fileName}\":");
+                for (int i = 0; i < matches.Length; i++)
+                    Console.WriteLine($"[{i + 1}] {Path.GetFileName(matches[i])}");
+
+                Console.Write("Выберите номер файла: ");
+                if (int.TryParse(Console.ReadLine(), out int choice) && choice > 0 && choice <= matches.Length)
+                    LaunchFile(matches[choice - 1]);
+            }
+            else
+            {
+                Console.Clear();
+                Console.WriteLine($"Файл \"{fileName}\" не найден");
+            }
+                
+        }
+    }
+
+    static void SavePreset(string presetName, string presetData)
+    {
+        Console.Clear();
+        File.AppendAllText(presetsFile, $"{presetName}:{presetData}\n");
+        Console.WriteLine($"Пресет \"{presetName}\" сохранен");
+    }
+
+    static void LoadPreset(string presetName, string[] files)
+    {
+        Console.Clear();
+        if (!File.Exists(presetsFile))
+        {
+            Console.WriteLine("Файл с пресетами не найден");
+            return;
+        }
+
+        var lines = File.ReadAllLines(presetsFile);
+        var presetLine = lines.FirstOrDefault(line => line.StartsWith($"{presetName}:"));
+
+        if (presetLine != null)
+        {
+            string[] presetFiles = presetLine.Substring(presetName.Length + 1).Split(':');
+            LaunchFiles(presetFiles, files);
+        }
+        else
+        {
+            Console.WriteLine($"Пресет \"{presetName}\" не найден");
+        }
+    }
+
+    static void LaunchFile(string filePath)
+    {
+        Console.Clear();
+        Console.WriteLine($"Запуск {Path.GetFileNameWithoutExtension(filePath)}...");
+        try { Process.Start(filePath); }
+        catch (Exception ex) { Console.WriteLine($"Ошибка: {ex.Message}"); }
+    }
+}
