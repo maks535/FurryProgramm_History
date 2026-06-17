@@ -276,7 +276,7 @@ class Program
             if (IsHidden)
             {
                 Console.ForegroundColor = ConsoleColor.DarkGray;
-                Console.WriteLine("Режим Hiddenn включён");
+                Console.WriteLine("Режим Hidden включён");
                 Console.ForegroundColor = ConsoleColor.Black;
             }
             Console.WriteLine("Текущая дата: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "\nДля вызова списка комманд введите: '?'");
@@ -770,12 +770,15 @@ class Program
             ProcessStartInfo psi = new ProcessStartInfo
             {
                 FileName = "cmd.exe",
-                Arguments = $"/C {command}",
+                Arguments = $"/C chcp 65001 >nul && {command}",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
-                CreateNoWindow = true
+                CreateNoWindow = true,
+                StandardOutputEncoding = Encoding.UTF8,
+                StandardErrorEncoding = Encoding.UTF8
             };
+
 
             using (Process process = new Process { StartInfo = psi })
             {
@@ -1341,6 +1344,12 @@ class Program
             }
             else
             {
+                if (!Regex.IsMatch(conversionName, @"^[a-zA-Z0-9_-]+$"))
+                {
+                    Console.WriteLine($"Ошибка: Введены недопустимые символы");
+                    continue;
+                }
+
                 string batFilePath = Path.Combine(batsFolder, conversionName + ".bat");
 
                 if (File.Exists(batFilePath))
@@ -1372,6 +1381,7 @@ class Program
                     Console.WriteLine($"Ошибка в вводе: '{conversionName}'");
                 }
             }
+
         }
     }
     static void TryFindDublicate(bool HomeDir, bool converter)
@@ -1760,7 +1770,6 @@ class Program
             Console.WriteLine($"Ошибка: {ex.Message}");
         }
     }
-
     static async Task CheckUpdate()
     {
         Version currentVersion = Assembly
