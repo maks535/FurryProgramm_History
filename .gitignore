@@ -1,0 +1,7 @@
+debug/
+*.zip
+*.rar
+*.fpf
+*.log
+*.user
+*.vs/
