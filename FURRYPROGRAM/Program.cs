@@ -941,9 +941,26 @@ class Program
     {
         SetConsoleColor(mainBGC, mainFGC, randomMain);
         Console.Clear();
+
         foreach (string fileName in requestedFiles)
         {
             string[] matches = files.Where(f => Path.GetFileName(f).ToLower().Contains(fileName.ToLower().Trim())).ToArray();
+
+            if (matches.Length == 0)
+            {
+                string altName = ConvertLayout(fileName);
+                string[] altMatches = files.Where(f => Path.GetFileName(f).ToLower().Contains(altName.ToLower().Trim())).ToArray();
+
+                if (altMatches.Length > 0)
+                {
+                    Console.WriteLine($"Файл \"{fileName}\" не найден. Попробовать {altName}? (Y/N)");
+                    var key = Console.ReadKey(true).Key;
+                    if (key == ConsoleKey.Y)
+                    {
+                        matches = altMatches;
+                    }
+                }
+            }
 
             if (matches.Length == 1)
             {
@@ -989,8 +1006,37 @@ class Program
             {
                 Console.WriteLine($"Файл \"{fileName}\" не найден");
             }
-
         }
+    }
+    static string ConvertLayout(string input)
+    {
+        Dictionary<char, char> latinToCyr = new Dictionary<char, char>
+    {
+        { 'q', 'й' }, { 'w', 'ц' }, { 'e', 'у' }, { 'r', 'к' }, { 't', 'е' },
+        { 'y', 'н' }, { 'u', 'г' }, { 'i', 'ш' }, { 'o', 'щ' }, { 'p', 'з' },
+        { '[', 'х' }, { ']', 'ъ' },
+
+        { 'a', 'ф' }, { 's', 'ы' }, { 'd', 'в' }, { 'f', 'а' }, { 'g', 'п' },
+        { 'h', 'р' }, { 'j', 'о' }, { 'k', 'л' }, { 'l', 'д' }, { ';', 'ж' },
+        { '\'', 'э' },
+
+        { 'z', 'я' }, { 'x', 'ч' }, { 'c', 'с' }, { 'v', 'м' }, { 'b', 'и' },
+        { 'n', 'т' }, { 'm', 'ь' }, { ',', 'б' }, { '.', 'ю' }
+    };
+
+        Dictionary<char, char> cyrToLatin = latinToCyr.ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
+
+        var sb = new StringBuilder();
+        foreach (char c in input.ToLower())
+        {
+            if (latinToCyr.ContainsKey(c))
+                sb.Append(latinToCyr[c]);
+            else if (cyrToLatin.ContainsKey(c))
+                sb.Append(cyrToLatin[c]);
+            else
+                sb.Append(c);
+        }
+        return sb.ToString();
     }
     static void SavePreset(string presetName, string presetData)
     {
